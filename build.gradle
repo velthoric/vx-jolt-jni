@@ -117,6 +117,12 @@ model {
         visualCpp(VisualCpp)
         clang(Clang)
         gcc(Gcc)
+        gcc10Arm64(Gcc) { // cross-compile on Linux
+            target('Linux_ARM64') {
+                cppCompiler.executable = 'aarch64-linux-gnu-g++-11'
+                linker.executable = 'aarch64-linux-gnu-g++-11'
+            }
+        }
         gcc11Arm32hf(Gcc) { // cross-compile on Linux
             target('Linux_ARM32hf') {
                 cppCompiler.executable = 'arm-linux-gnueabihf-g++-11'
@@ -219,6 +225,9 @@ model {
                     cppCompiler.define 'JPH_DOUBLE_PRECISION'; objcppCompiler.define 'JPH_DOUBLE_PRECISION'
                 }
 
+                cppCompiler.define 'JPH_SHARED_LIBRARY'
+                cppCompiler.define 'JPH_BUILD_SHARED_LIBRARY'
+
                 if (project.hasProperty('useMTL')) {
                     cppCompiler.define 'JPH_USE_MTL'; objcppCompiler.define 'JPH_USE_MTL'
                     linker.args '-framework', 'Foundation'
@@ -291,11 +300,13 @@ model {
                         // workaround when Xcode isn't installed:
                         //cppCompiler.args '-I', '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1'
                         cppCompiler.args '-I', "$javaHome/include/darwin"
+                        cppCompiler.args '-fvisibility=default'
+                        linker.args '-fvisibility=default'
                     } else if (os == 'linux') {
                         cppCompiler.args '-I', "$javaHome/include/linux"
                         cppCompiler.args '-fPIC'
-                        cppCompiler.args '-fvisibility=hidden'
-                        linker.args '-fvisibility=hidden'
+                        cppCompiler.args '-fvisibility=default'
+                        linker.args '-fvisibility=default'
                     } else if (os == 'windows') {
                         cppCompiler.args '-I', "$javaHome/include/win32"
                     } else {
@@ -735,6 +746,25 @@ tasks.register('unpackVhacdSource', Copy) {
         includeEmptyDirs = false
     }
     into layout.projectDirectory.dir('src/main/native')
+}
+
+// Task to zip Jolt headers
+tasks.register('zipJoltHeaders', Zip) {
+    dependsOn 'unpackJoltSource', 'unpackVhacdSource', 'unpackTestFramework'
+
+    archiveBaseName = "jolt-headers"
+    archiveVersion = jjVersion
+    destinationDirectory = file("build/libs")
+
+    // Pack the Jolt headers so they can be used in other C++ projects
+    from("src/main/native/Jolt") {
+        include "**/*.h"
+        include "**/*.inl"
+        include "**/*.natvis"
+        include "**/*.hlsl"
+
+        into "Jolt"
+    }
 }
 
 // Register cleanup tasks:
