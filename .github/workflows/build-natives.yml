@@ -32,6 +32,7 @@ jobs:
         run: ./gradlew nativesJarLinux64ReleaseDp jar sourcesJar zipJoltHeaders -Ptarget=Linux64 --console=plain
       - name: Prepare Artifact
         run: |
+          ls build/libs
           mkdir dist
           find build/libs -name "*.so" -exec cp {} dist/joltjni-${{ needs.prepare.outputs.version }}-linux-x64-ReleaseDp.so \;
           find build/libs -name "*.jar" ! -name "*-sources.jar" -exec cp {} dist/jolt-jni-${{ needs.prepare.outputs.version }}.jar \;
